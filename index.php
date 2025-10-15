@@ -28,7 +28,7 @@ if (isset($update["message"])) {
 
     // Case 1: The message is a /start command
     if ($message === '/start') {
-        sendMessage($chatId, "Hello $firstname, this bot is inspired by @LivegramBot\nYour ID: $userId");
+        sendMessage($chatId, "Hello $firstname !!, How can we help you today? ");
     }
     // Case 2: The message is from the ADMIN and IS A REPLY
     else if ($chatId == $adminId && isset($messageData["reply_to_message"])) {
