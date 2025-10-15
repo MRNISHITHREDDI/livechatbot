@@ -8,10 +8,11 @@ $adminId = getenv('ADMIN_ID'); // The admin's Telegram ID
 $website = "https://api.telegram.org/bot".$botToken;
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
+
 $update = file_get_contents('php://input');
 $update = json_decode($update, TRUE);
 
-// Extract message details (no changes here)
+// Extract message details
 $chatId = $update["message"]["chat"]["id"];
 $userId = $update["message"]["from"]["id"];
 $firstname = $update["message"]["from"]["first_name"];
@@ -32,6 +33,9 @@ if($chatId == $adminId){ // Check if the message is from the admin
         sendMessager($reply_id, $message);
     }
 } else {
+    // ---- NEW DEBUG LINE ADDED ----
+    sendMessage($chatId, "DEBUG: Attempting to forward message to admin.", $message_id);
+
     forwardMessage($adminId, $chatId, $message_id); // Forward to the admin
 }
 #===================[FUNCIONES]=============#
