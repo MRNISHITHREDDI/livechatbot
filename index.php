@@ -1,5 +1,5 @@
 <?php
-#==================[Final Working Version]===============#
+#==================[Final Privacy-Bypass Version]===============#
 
 // Get secrets from Railway's Environment Variables
 $botToken = getenv('BOT_TOKEN');
@@ -20,7 +20,6 @@ if (isset($update["message"])) {
     // Safely get all the details from the message
     $chatId = $messageData["chat"]["id"] ?? null;
     $message = $messageData["text"] ?? null;
-    $message_id = $messageData["message_id"] ?? null;
     $firstname = $messageData["from"]["first_name"] ?? 'User';
     $userId = $messageData["from"]["id"] ?? null;
 
@@ -32,58 +31,45 @@ if (isset($update["message"])) {
     }
     // Case 2: The message is from the ADMIN and IS A REPLY
     else if ($chatId == $adminId && isset($messageData["reply_to_message"])) {
-        // Check if the original sender's ID is available
-        if (isset($messageData["reply_to_message"]["forward_from"]["id"])) {
-            $reply_id = $messageData["reply_to_message"]["forward_from"]["id"];
-            sendMessager($reply_id, $message);
+        // Get the text of the message being replied to
+        $repliedToText = $messageData["reply_to_message"]["text"] ?? '';
+        $reply_id = null;
+
+        // Use a regular expression to find the User ID in the text
+        if (preg_match('/User ID: (\d+)/', $repliedToText, $matches)) {
+            $reply_id = $matches[1];
+        }
+
+        if ($reply_id) {
+            // If we found an ID, send the admin's message to that user
+            sendMessage($reply_id, $message);
         } else {
-            // If the ID is hidden by privacy settings, inform the admin
-            sendMessager($adminId, "⚠️ Could not reply. This user has enabled forwarding privacy and their ID is hidden.");
+            // If no ID was found, inform the admin
+            sendMessage($adminId, "⚠️ Could not find a User ID in the message you replied to. Please only reply to messages from users.");
         }
     }
     // Case 3: The message is from a regular USER
     else if ($chatId != $adminId) {
-        // First, forward the user's message to the admin
-        forwardMessage($adminId, $chatId, $message_id);
-
-        // Then, send the temporary confirmation message and get its ID
-        $confirmation_message = sendMessage($chatId, "message sent !! please wait for reply");
-        if ($confirmation_message && isset($confirmation_message['result']['message_id'])) {
-            // Wait for 4 seconds - NOTE: This can be unreliable on some servers
-            sleep(4);
-            // Delete the confirmation message
-            deleteMessage($chatId, $confirmation_message['result']['message_id']);
-        }
+        // Instead of forwarding, create a new message with the user's info
+        $forwardText = "<b>New message from:</b> " . htmlspecialchars($firstname) . "\n";
+        $forwardText .= "<b>User ID:</b> <code>" . $userId . "</code>\n\n";
+        $forwardText .= "<em>" . htmlspecialchars($message) . "</em>";
+        
+        // Send this new, formatted message to the admin
+        sendMessage($adminId, $forwardText);
+        
+        // Send a confirmation message to the user
+        sendMessage($chatId, "message sent ✅");
     }
 }
 
 #===================[FUNCTIONS]================#
 
-function deleteMessage($chatId, $messageId) {
-    if (!$chatId || !$messageId) return;
-    $url = $GLOBALS['website'].'/deleteMessage?chat_id='.$chatId.'&message_id='.$messageId;
-    @file_get_contents($url);
-}
-
-// MODIFIED: This function now returns the sent message data to get its ID
 function sendMessage($chatId, $message) {
-    if (!$chatId || !$message) return null;
-    $text = urlencode($message);
-    $url = $GLOBALS['website'].'/sendMessage?chat_id='.$chatId.'&text='.$text.'&parse_mode=Html';
-    $response = @file_get_contents($url);
-    return json_decode($response, true);
-}
-
-function sendMessager($chatId, $message) {
     if (!$chatId || !$message) return;
     $text = urlencode($message);
-    $url = $GLOBALS['website'].'/sendMessage?chat_id='.$chatId.'&text='.$text.'&parse_mode=Html';
-    @file_get_contents($url);
-}
-
-function forwardMessage($send, $chatId, $message_id) {
-    if (!$send || !$chatId || !$message_id) return;
-    $url = $GLOBALS['website'].'/forwardMessage?chat_id='.$send.'&from_chat_id='.$chatId.'&message_id='.$message_id.'&disable_notification=false';
+    // Use parse_mode=HTML to render the bold and italic tags
+    $url = $GLOBALS['website'].'/sendMessage?chat_id='.$chatId.'&text='.$text.'&parse_mode=HTML';
     @file_get_contents($url);
 }
 
