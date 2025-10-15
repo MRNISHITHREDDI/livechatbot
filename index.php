@@ -1,5 +1,5 @@
 <?php
-#==================[By Ghostbin01]===============#
+#==================[Final Version]===============#
 
 // Get secrets from Railway's Environment Variables
 $botToken = getenv('BOT_TOKEN');
@@ -44,7 +44,7 @@ if (isset($update["message"])) {
 
         // Then, send the temporary confirmation message and get its ID
         $confirmation_message = sendMessage($chatId, "message sent !! please wait for reply");
-        if ($confirmation_message) {
+        if ($confirmation_message && isset($confirmation_message['result']['message_id'])) {
             // Wait for 4 seconds
             sleep(4);
             // Delete the confirmation message
@@ -55,14 +55,12 @@ if (isset($update["message"])) {
 
 #===================[FUNCTIONS]================#
 
-// NEW FUNCTION: Deletes a message
 function deleteMessage($chatId, $messageId) {
     if (!$chatId || !$messageId) return;
     $url = $GLOBALS['website'].'/deleteMessage?chat_id='.$chatId.'&message_id='.$messageId;
     @file_get_contents($url);
 }
 
-// MODIFIED: This function now returns the sent message data
 function sendMessage($chatId, $message) {
     if (!$chatId || !$message) return null;
     $text = urlencode($message);
