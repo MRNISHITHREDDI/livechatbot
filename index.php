@@ -64,8 +64,8 @@ if (isset($update["message"])) {
         
         // Check if the confirmation message was sent successfully
         if ($confirmation_message && isset($confirmation_message['result']['message_id'])) {
-            // Wait for 2 seconds
-            sleep(2);
+            // Wait for 1 seconds
+            sleep(1);
             // Delete the confirmation message
             deleteMessage($chatId, $confirmation_message['result']['message_id']);
         }
