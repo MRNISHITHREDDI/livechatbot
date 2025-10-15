@@ -6,7 +6,8 @@ $botToken = getenv('BOT_TOKEN');
 $adminId = getenv('ADMIN_ID'); // The admin's Telegram ID
 
 $website = "https://api.telegram.org/bot".$botToken;
-error_reporting(0);
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
 $update = file_get_contents('php://input');
 $update = json_decode($update, TRUE);
 
