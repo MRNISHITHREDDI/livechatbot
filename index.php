@@ -28,11 +28,10 @@ if (isset($update["message"])) {
 
     // Case 1: The message is a /start command
     if ($message === '/start') {
-        sendMessage($chatId, "Hello $firstname, this bot is inspired by @LivegramBot\nYour ID: $userId", $message_id);
+        sendMessage($chatId, "Hello $firstname, this bot is inspired by @LivegramBot\nYour ID: $userId");
     }
     // Case 2: The message is from the ADMIN and IS A REPLY
     else if ($chatId == $adminId && isset($messageData["reply_to_message"])) {
-        // Check if the reply is to a FORWARDED message before trying to get the user ID
         if (isset($messageData["reply_to_message"]["forward_from"]["id"])) {
             $reply_id = $messageData["reply_to_message"]["forward_from"]["id"];
             sendMessager($reply_id, $message);
@@ -40,17 +39,36 @@ if (isset($update["message"])) {
     }
     // Case 3: The message is from a regular USER
     else if ($chatId != $adminId) {
+        // First, forward the user's message to the admin
         forwardMessage($adminId, $chatId, $message_id);
+
+        // Then, send the temporary confirmation message and get its ID
+        $confirmation_message = sendMessage($chatId, "message sent !! please wait for reply");
+        if ($confirmation_message) {
+            // Wait for 4 seconds
+            sleep(4);
+            // Delete the confirmation message
+            deleteMessage($chatId, $confirmation_message['result']['message_id']);
+        }
     }
 }
 
 #===================[FUNCTIONS]================#
 
-function sendMessage($chatId, $message, $message_id) {
-    if (!$chatId || !$message) return; // Add check to prevent errors
+// NEW FUNCTION: Deletes a message
+function deleteMessage($chatId, $messageId) {
+    if (!$chatId || !$messageId) return;
+    $url = $GLOBALS['website'].'/deleteMessage?chat_id='.$chatId.'&message_id='.$messageId;
+    @file_get_contents($url);
+}
+
+// MODIFIED: This function now returns the sent message data
+function sendMessage($chatId, $message) {
+    if (!$chatId || !$message) return null;
     $text = urlencode($message);
-    $url = $GLOBALS['website'].'/sendMessage?chat_id='.$chatId.'&text='.$text.'&reply_to_message_id='.$message_id.'&parse_mode=Html';
-    @file_get_contents($url); // Use @ to suppress warnings on failure
+    $url = $GLOBALS['website'].'/sendMessage?chat_id='.$chatId.'&text='.$text.'&parse_mode=Html';
+    $response = @file_get_contents($url);
+    return json_decode($response, true);
 }
 
 function sendMessager($chatId, $message) {
