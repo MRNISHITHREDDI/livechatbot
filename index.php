@@ -1,5 +1,5 @@
 <?php
-#==================[Final Version with Debugging]===============#
+#==================[Final Working Version]===============#
 
 // Get secrets from Railway's Environment Variables
 $botToken = getenv('BOT_TOKEN');
@@ -32,20 +32,13 @@ if (isset($update["message"])) {
     }
     // Case 2: The message is from the ADMIN and IS A REPLY
     else if ($chatId == $adminId && isset($messageData["reply_to_message"])) {
-        
-        // --- START DEBUGGING BLOCK ---
-        // Send the structure of the replied-to message back to the admin for inspection
-        $debug_info = json_encode($messageData["reply_to_message"], JSON_PRETTY_PRINT);
-        sendMessager($adminId, "<b>DEBUG INFO:</b>\n<pre>" . htmlspecialchars($debug_info) . "</pre>");
-        // --- END DEBUGGING BLOCK ---
-
+        // Check if the original sender's ID is available
         if (isset($messageData["reply_to_message"]["forward_from"]["id"])) {
             $reply_id = $messageData["reply_to_message"]["forward_from"]["id"];
-            // Attempt to send the reply to the user
             sendMessager($reply_id, $message);
         } else {
-             // If the expected data isn't found, notify the admin
-            sendMessager($adminId, "<b>DEBUG:</b> Reply failed. Could not find original sender's ID in the message data.");
+            // If the ID is hidden by privacy settings, inform the admin
+            sendMessager($adminId, "⚠️ Could not reply. This user has enabled forwarding privacy and their ID is hidden.");
         }
     }
     // Case 3: The message is from a regular USER
