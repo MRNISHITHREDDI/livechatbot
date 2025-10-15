@@ -22,6 +22,7 @@ if (isset($update["message"])) {
     $message = $messageData["text"] ?? null;
     $firstname = $messageData["from"]["first_name"] ?? 'User';
     $userId = $messageData["from"]["id"] ?? null;
+    $message_id = $messageData["message_id"] ?? null;
 
     // --- Main Logic ---
 
@@ -58,18 +59,38 @@ if (isset($update["message"])) {
         // Send this new, formatted message to the admin
         sendMessage($adminId, $forwardText);
         
-        // Send a confirmation message to the user
-        sendMessage($chatId, "message sent ✅");
+        // Send a temporary confirmation message to the user
+        $confirmation_message = sendMessage($chatId, "message sent ✅", true); // The 'true' flag returns message data
+        
+        // Check if the confirmation message was sent successfully
+        if ($confirmation_message && isset($confirmation_message['result']['message_id'])) {
+            // Wait for 2 seconds
+            sleep(2);
+            // Delete the confirmation message
+            deleteMessage($chatId, $confirmation_message['result']['message_id']);
+        }
     }
 }
 
 #===================[FUNCTIONS]================#
 
-function sendMessage($chatId, $message) {
-    if (!$chatId || !$message) return;
+function deleteMessage($chatId, $messageId) {
+    if (!$chatId || !$messageId) return;
+    $url = $GLOBALS['website'].'/deleteMessage?chat_id='.$chatId.'&message_id='.$messageId;
+    @file_get_contents($url);
+}
+
+// The function is modified to optionally return the response
+function sendMessage($chatId, $message, $return_response = false) {
+    if (!$chatId || !$message) return null;
     $text = urlencode($message);
     // Use parse_mode=HTML to render the bold and italic tags
     $url = $GLOBALS['website'].'/sendMessage?chat_id='.$chatId.'&text='.$text.'&parse_mode=HTML';
-    @file_get_contents($url);
+    $response = @file_get_contents($url);
+    
+    if ($return_response) {
+        return json_decode($response, true);
+    }
+    return null;
 }
 
