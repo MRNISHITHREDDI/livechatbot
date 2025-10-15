@@ -1,5 +1,5 @@
 <?php
-#==================[Final Version with Debugging]===============#
+#==================[Final Working Version]===============#
 
 // Get secrets from Railway's Environment Variables
 $botToken = getenv('BOT_TOKEN');
@@ -32,52 +32,25 @@ if (isset($update["message"])) {
     }
     // Case 2: The message is from the ADMIN and IS A REPLY
     else if ($chatId == $adminId && isset($messageData["reply_to_message"])) {
-        
-        // --- START DEBUGGING BLOCK ---
-        // Send the structure of the replied-to message back to the admin for inspection
-        $debug_info = json_encode($messageData["reply_to_message"], JSON_PRETTY_PRINT);
-        sendMessager($adminId, "<b>DEBUG INFO:</b>\n<pre>" . htmlspecialchars($debug_info) . "</pre>");
-        // --- END DEBUGGING BLOCK ---
-
         if (isset($messageData["reply_to_message"]["forward_from"]["id"])) {
             $reply_id = $messageData["reply_to_message"]["forward_from"]["id"];
-            // Attempt to send the reply to the user
             sendMessager($reply_id, $message);
-        } else {
-             // If the expected data isn't found, notify the admin
-            sendMessager($adminId, "<b>DEBUG:</b> Reply failed. Could not find original sender's ID in the message data.");
         }
     }
     // Case 3: The message is from a regular USER
     else if ($chatId != $adminId) {
-        // First, forward the user's message to the admin
+        // Forward the user's message to the admin
         forwardMessage($adminId, $chatId, $message_id);
-
-        // Then, send the temporary confirmation message and get its ID
-        $confirmation_message = sendMessage($chatId, "message sent !! please wait for reply");
-        if ($confirmation_message && isset($confirmation_message['result']['message_id'])) {
-            // Wait for 4 seconds
-            sleep(4);
-            // Delete the confirmation message
-            deleteMessage($chatId, $confirmation_message['result']['message_id']);
-        }
     }
 }
 
 #===================[FUNCTIONS]================#
 
-function deleteMessage($chatId, $messageId) {
-    if (!$chatId || !$messageId) return;
-    $url = $GLOBALS['website'].'/deleteMessage?chat_id='.$chatId.'&message_id='.$messageId;
-    @file_get_contents($url);
-}
-
 function sendMessage($chatId, $message) {
-    if (!$chatId || !$message) return null;
+    if (!$chatId || !$message) return;
     $text = urlencode($message);
     $url = $GLOBALS['website'].'/sendMessage?chat_id='.$chatId.'&text='.$text.'&parse_mode=Html';
-    $response = @file_get_contents($url);
-    return json_decode($response, true);
+    @file_get_contents($url);
 }
 
 function sendMessager($chatId, $message) {
