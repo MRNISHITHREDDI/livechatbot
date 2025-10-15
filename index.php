@@ -13,33 +13,32 @@ $website = "https://api.telegram.org/bot".$botToken;
 $update = file_get_contents('php://input');
 $update = json_decode($update, TRUE);
 
-// Check if there is a message in the update
+// Check if there is a message in the update to prevent errors
 if (isset($update["message"])) {
     $messageData = $update["message"];
 
-    // Safely extract message details
+    // Safely get all the details from the message
     $chatId = $messageData["chat"]["id"] ?? null;
     $message = $messageData["text"] ?? null;
     $message_id = $messageData["message_id"] ?? null;
     $firstname = $messageData["from"]["first_name"] ?? 'User';
     $userId = $messageData["from"]["id"] ?? null;
-    $reply_to_message = $messageData["reply_to_message"] ?? null;
 
     // --- Main Logic ---
 
-    // 1. Handle the /start command
+    // Case 1: The message is a /start command
     if ($message === '/start') {
         sendMessage($chatId, "Hello $firstname, this bot is inspired by @LivegramBot\nYour ID: $userId", $message_id);
     }
-    // 2. Handle replies FROM the admin
-    else if ($chatId == $adminId && isset($reply_to_message)) {
-        // Safely get the original user's ID from the message being replied to
-        $reply_id = $reply_to_message["forward_from"]["id"] ?? null;
-        if ($reply_id) {
+    // Case 2: The message is from the ADMIN and IS A REPLY
+    else if ($chatId == $adminId && isset($messageData["reply_to_message"])) {
+        // Check if the reply is to a FORWARDED message before trying to get the user ID
+        if (isset($messageData["reply_to_message"]["forward_from"]["id"])) {
+            $reply_id = $messageData["reply_to_message"]["forward_from"]["id"];
             sendMessager($reply_id, $message);
         }
     }
-    // 3. Handle messages FROM a user
+    // Case 3: The message is from a regular USER
     else if ($chatId != $adminId) {
         forwardMessage($adminId, $chatId, $message_id);
     }
@@ -48,21 +47,21 @@ if (isset($update["message"])) {
 #===================[FUNCTIONS]================#
 
 function sendMessage($chatId, $message, $message_id) {
-    if (!$chatId || !$message) return;
+    if (!$chatId || !$message) return; // Add check to prevent errors
     $text = urlencode($message);
     $url = $GLOBALS['website'].'/sendMessage?chat_id='.$chatId.'&text='.$text.'&reply_to_message_id='.$message_id.'&parse_mode=Html';
-    file_get_contents($url);
+    @file_get_contents($url); // Use @ to suppress warnings on failure
 }
 
 function sendMessager($chatId, $message) {
     if (!$chatId || !$message) return;
     $text = urlencode($message);
     $url = $GLOBALS['website'].'/sendMessage?chat_id='.$chatId.'&text='.$text.'&parse_mode=Html';
-    file_get_contents($url);
+    @file_get_contents($url);
 }
 
 function forwardMessage($send, $chatId, $message_id) {
     if (!$send || !$chatId || !$message_id) return;
     $url = $GLOBALS['website'].'/forwardMessage?chat_id='.$send.'&from_chat_id='.$chatId.'&message_id='.$message_id.'&disable_notification=false';
-    file_get_contents($url);
+    @file_get_contents($url);
 }
